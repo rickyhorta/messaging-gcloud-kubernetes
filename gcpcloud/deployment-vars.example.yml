@@ -1,0 +1,9 @@
+# Copy to deployment-vars.yml and fill in your own values
+docker_user: your-dockerhub-username
+image_tag: latest
+postgres_user: user
+postgres_password: change-me
+auth_db_name: authapp
+chat_db_name: chatapp
+jwt_secret: change-me-long-random-string
+grafana_admin_password: change-me

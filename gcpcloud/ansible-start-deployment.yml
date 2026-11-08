@@ -1,0 +1,28 @@
+---
+- hosts: master
+  become: yes
+  become_user: root
+  become_method: sudo
+  vars_files:
+    - deployment-vars.yml
+  vars:
+    kubectl: kubectl --kubeconfig /etc/kubernetes/admin.conf
+  tasks:
+    - name: Render the deployment file (fills images and secrets from vars)
+      template:
+        src: /home/gcpcloud/deployment.yaml
+        dest: /home/ubuntu/deployment.yaml
+        mode: 0600
+
+    - name: Render the monitoring file (fills grafana password, inlined dashboard)
+      template:
+        src: /home/gcpcloud/monitoring.yaml
+        dest: /home/ubuntu/monitoring.yaml
+        mode: 0600
+
+    - name: Start deployment
+      shell: "sudo kubectl apply -f /home/ubuntu/deployment.yaml -f /home/ubuntu/monitoring.yaml"
+      register: apply_out
+
+    - debug:
+        msg: "{{ apply_out.stdout_lines }}"

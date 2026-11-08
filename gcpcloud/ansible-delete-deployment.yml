@@ -1,0 +1,13 @@
+---
+# Removes the application + monitoring from the cluster.
+# PersistentVolumes use reclaim policy Retain: database data on worker1's
+# disk survives this and is reused by the next deployment.
+- hosts: master
+  become: yes
+  become_user: root
+  become_method: sudo
+  vars:
+    kubectl: kubectl --kubeconfig /etc/kubernetes/admin.conf
+  tasks:
+    - name: Delete deployment
+      shell: sudo kubectl delete -f /home/ubuntu/deployment.yaml -f /home/ubuntu/monitoring.yaml --ignore-not-found=true

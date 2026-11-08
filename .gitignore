@@ -1,0 +1,16 @@
+.env
+.venv
+__pycache__
+*.pyc
+ssh-keys/
+ansible/inventory.ini
+infra/gcpcloud/ansible/secrets.yaml
+
+# GCP service-account keys and terraform local state (gcpcloud/)
+gcpcloud/*.json
+gcpcloud/.terraform/
+gcpcloud/terraform.tfstate
+gcpcloud/terraform.tfstate.backup
+gcpcloud/*.tfvars
+gcpcloud/kubeconfig
+gcpcloud/deployment-vars.yml

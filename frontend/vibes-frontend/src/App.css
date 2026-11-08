@@ -1,0 +1,310 @@
+/* Import Chewy font from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Chewy&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Chewy&family=Roboto&display=swap');
+
+body, html {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: 'Chewy', cursive;
+  background: linear-gradient(to bottom, #4facfe, #00f2fe);
+}
+
+.App {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  text-align: center;
+}
+
+h1 {
+  font-size: 2.5rem;
+  margin-bottom: 0;
+  color: #ffffff;
+}
+
+h2 {
+  font-size: 7rem;
+  margin-top: 0px;
+  color: #00318b;
+  margin-bottom: 10px;
+}
+
+input[type="text"], input[type="password"] {
+  display: block;
+  margin: 15px auto;
+  padding: 12px 15px;
+  font-size: 1.2rem;
+  border-radius: 12px;
+  border: none;
+  width: 250px;
+  max-width: 80%;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+input:focus {
+  outline: none;
+  box-shadow: 0 4px 10px rgba(255,255,255,0.6);
+}
+
+button.login-button {
+  background-color: #1E90FF;
+  color: white;
+  font-size: 1.2rem;
+  padding: 12px 25px;
+  border: none;
+  border-radius: 15px;
+  cursor: pointer;
+  margin-top: px;
+  transition: transform 0.2s, background-color 0.2s;
+}
+
+button.login-button:hover {
+  background-color: #3aa0ff;
+  transform: scale(1.05);
+}
+
+p {
+  color: white;
+  font-size: 1rem;
+  margin-top: 15px;
+}
+
+.register-link {
+  color: #00318b;
+  text-decoration: underline;
+  cursor: pointer;
+  margin-left: 5px;
+}
+
+.register-link:hover {
+  color: #00215b;
+}
+
+/*__________________________________________*/
+/*              CHATPAGE                    */
+/*__________________________________________*/
+
+.chat-container {
+  background-color: rgba(159, 162, 168, 0.8);
+  display: flex;
+  height: 90vh;
+  width: 90%;
+  max-width: 1000px;
+  margin: 20px auto;
+  border-radius: 15px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+
+h3 {
+  font-size: 4rem;
+  margin: 0;
+  color: rgb(0, 22, 130);
+  text-align: center;
+}
+
+/*_________ Left sidebar___________ */
+.chat-sidebar {
+  background-color: rgba(0, 49, 139, 0.8);
+  color: white;
+  width: 200px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Scrollable chat list */
+.chat-list {
+  flex: 1; /* take available space between title and buttons */
+  overflow-y: auto;
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+.chat-item {
+  background-color: rgba(153, 188, 253, 0.8);
+  padding: 8px 5px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-bottom: 10px;
+}
+
+.chat-item:hover {
+  background-color: rgba(255,255,255,0.2);
+}
+
+.sidebar-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px; /* space between buttons */
+  margin-bottom: 50px;
+}
+
+/* Buttons */
+button.start-chat, button.logout-button {
+  background-color: #1E90FF;
+  color: white;
+  font-size: 1.2rem;
+  padding: 12px 25px;
+  border: none;
+  border-radius: 15px;
+  cursor: pointer;
+  text-align: center;
+  transition: transform 0.2s, background-color 0.2s;
+}
+
+button.start-chat:hover, button.logout-button:hover {
+  background-color: #3aa0ff;
+  transform: scale(1.05);
+}
+
+/* ______________Right main chat area ___________________ */
+.chat-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 0px; 
+  justify-content: space-between;
+}
+
+/* Chat messages window*/
+.chat-window {
+  flex: 1; 
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 15px;
+  padding: 15px;
+  
+  max-height: none;
+  width: auto; 
+  margin: 15px 15px 10px 15px; 
+
+  overflow-y: auto;
+  text-align: left;
+  color: white;
+  font-size: 1.1rem;
+  font-family: 'Roboto', sans-serif;
+}
+
+/* ____________________ MESSAGE BUBBLE STYLES ____________________ */
+
+/* 1. BASE MESSAGE STYLE */
+.chat-message {
+    max-width: 60%;
+    padding: 8px 12px;
+    margin: 5px 0;
+    border-radius: 18px;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    clear: both;
+}
+
+/* 2. STYLE FOR MESSAGES SENT BY THE CURRENT USER ('mine') */
+.chat-message.mine {
+    margin-left: auto;
+    background-color: #1E90FF;
+    color: white;
+    border-bottom-right-radius: 4px;
+}
+
+/* STYLE FOR MESSAGES SENT BY OTHER USERS ('theirs') */
+.chat-message.theirs {
+    margin-right: auto;
+    background-color: #e5e5ea;
+    color: black;
+    border-bottom-left-radius: 4px;
+}
+
+/* STYLE FOR MESSAGE SENDER*/
+strong.username {
+  font-weight: bolder; 
+  color: rgba(0, 49, 139, 0.8);
+  text-align: left;
+}
+
+/* Chat input */
+.chat-input {
+  display: flex;
+  gap: 10px;
+  padding: 15px 15px 15px 15px; /* Added padding to the sides and bottom */
+}
+/* Chat input text field - UPDATED */
+.chat-input input[type="text"] {
+  flex: 1;
+  width: 100%;
+  margin: 0;
+}
+/* Chat input button*/
+.chat-input button {
+  padding: 10px 20px;
+  border-radius: 12px;
+  margin: 0;
+}
+
+.send-button {
+  background-color: #1E90FF;
+  color: white;
+  font-size: 1.2rem;
+  padding: 12px 25px;
+  border: none;
+  border-radius: 15px;
+  cursor: pointer;
+  transition: transform 0.2s, background-color 0.2s;
+}
+
+.send-button:hover {
+  background-color: #3aa0ff;
+  transform: scale(1.05);
+}
+
+/*_________________________MODAL__________________________*/
+
+/* Modal overlay (dark background) */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+/* Modal card */
+.modal-card {
+  background: #ffffff;
+  color: #030303;
+  padding: 20px;
+  border-radius: 10px;
+  width: 480px;
+  max-width: calc(100% - 32px);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.25);
+}
+
+h4 {
+  margin: 0;
+  font-size: 1.5rem;
+  text-align: center;
+}
+
+/* Modal buttons */
+button.startVibing {  
+  background: #1E90FF;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+}
+
+button.cancel {
+  background: transparent;
+  border: 1px solid #ccc;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}

@@ -1,0 +1,372 @@
+# ------------------------------------------------------------------------------
+# AUTH DATABASE
+# ------------------------------------------------------------------------------
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: auth-init-sql
+data:
+  init.sql: |
+    {{ lookup('file', '/home/database/auth-init.sql') | indent(4) }}
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: auth-db-pv
+spec:
+  capacity:
+    storage: 2Gi
+  accessModes: ["ReadWriteOnce"]
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: manual
+  hostPath:
+    path: /mnt/data/auth-db
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: auth-db-pvc
+spec:
+  accessModes: ["ReadWriteOnce"]
+  storageClassName: manual
+  volumeName: auth-db-pv
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-db-deployment
+  labels:
+    app: auth-db
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate   # RWO volume: old pod must release it before the new mounts
+  selector:
+    matchLabels:
+      app: auth-db
+  template:
+    metadata:
+      labels:
+        app: auth-db
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: worker1   # keep the pod next to its hostPath data
+      containers:
+      - name: postgres
+        image: postgres:15
+        env:
+        - name: POSTGRES_USER
+          value: "{{ postgres_user }}"
+        - name: POSTGRES_PASSWORD
+          value: "{{ postgres_password }}"
+        - name: POSTGRES_DB
+          value: "{{ auth_db_name | default('authdb') }}"
+        - name: PGDATA   # subPath keeps initdb happy on a non-empty mount root
+          value: /var/lib/postgresql/data/pgdata
+        ports:
+        - containerPort: 5432
+        resources:
+          requests:
+            cpu: 250m
+            memory: 256Mi
+        readinessProbe:
+          exec:
+            command: ["pg_isready", "-U", "{{ postgres_user }}", "-d", "{{ auth_db_name | default('authdb') }}"]
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        volumeMounts:
+        - name: init-sql
+          mountPath: /docker-entrypoint-initdb.d/init.sql
+          subPath: init.sql
+        - name: data
+          mountPath: /var/lib/postgresql/data
+      volumes:
+      - name: init-sql
+        configMap:
+          name: auth-init-sql
+      - name: data
+        persistentVolumeClaim:
+          claimName: auth-db-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-db
+spec:
+  selector:
+    app: auth-db
+  ports:
+    - port: 5432
+      targetPort: 5432
+---
+# ------------------------------------------------------------------------------
+# CHAT DATABASE
+# ------------------------------------------------------------------------------
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: chat-init-sql
+data:
+  init.sql: |
+    {{ lookup('file', '/home/database/chat-init.sql') | indent(4) }}
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: chat-db-pv
+spec:
+  capacity:
+    storage: 2Gi
+  accessModes: ["ReadWriteOnce"]
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: manual
+  hostPath:
+    path: /mnt/data/chat-db
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: chat-db-pvc
+spec:
+  accessModes: ["ReadWriteOnce"]
+  storageClassName: manual
+  volumeName: chat-db-pv
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chat-db-deployment
+  labels:
+    app: chat-db
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: chat-db
+  template:
+    metadata:
+      labels:
+        app: chat-db
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: worker1
+      containers:
+      - name: postgres
+        image: postgres:15
+        env:
+        - name: POSTGRES_USER
+          value: "{{ postgres_user }}"
+        - name: POSTGRES_PASSWORD
+          value: "{{ postgres_password }}"
+        - name: POSTGRES_DB
+          value: "{{ chat_db_name | default('chatdb') }}"
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        ports:
+        - containerPort: 5432
+        resources:
+          requests:
+            cpu: 250m
+            memory: 256Mi
+        readinessProbe:
+          exec:
+            command: ["pg_isready", "-U", "{{ postgres_user }}", "-d", "{{ chat_db_name | default('chatdb') }}"]
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        volumeMounts:
+        - name: init-sql
+          mountPath: /docker-entrypoint-initdb.d/init.sql
+          subPath: init.sql
+        - name: data
+          mountPath: /var/lib/postgresql/data
+      volumes:
+      - name: init-sql
+        configMap:
+          name: chat-init-sql
+      - name: data
+        persistentVolumeClaim:
+          claimName: chat-db-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: chat-db
+spec:
+  selector:
+    app: chat-db
+  ports:
+    - port: 5432
+      targetPort: 5432
+---
+# ------------------------------------------------------------------------------
+# Auth Service
+# ------------------------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-deployment
+  labels:
+    app: auth-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: auth-service
+  template:
+    metadata:
+      labels:
+        app: auth-service
+      annotations:   # picked up by Prometheus pod discovery
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: /metrics
+    spec:
+      containers:
+      - name: auth-service
+        image: docker.io/{{ docker_user }}/auth-service:{{ image_tag | default('latest') }}
+        imagePullPolicy: Always
+        env:
+        - name: DATABASE_URL
+          value: "postgresql://{{ postgres_user }}:{{ postgres_password }}@auth-db:5432/{{ auth_db_name | default('authdb') }}"
+        - name: JWT_SECRET
+          value: "{{ jwt_secret }}"
+        ports:
+        - containerPort: 8000
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        readinessProbe:
+          httpGet:
+            path: /docs
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-service
+spec:
+  selector:
+    app: auth-service
+  ports:
+    - port: 8000
+      targetPort: 8000
+---
+# ------------------------------------------------------------------------------
+# Chat Service
+# ------------------------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chat-deployment
+  labels:
+    app: chat-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: chat-service
+  template:
+    metadata:
+      labels:
+        app: chat-service
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8001"
+        prometheus.io/path: /metrics
+    spec:
+      containers:
+        - name: chat-service
+          image: docker.io/{{ docker_user }}/chat-service:{{ image_tag | default('latest') }}
+          imagePullPolicy: Always
+          env:
+          - name: DATABASE_URL
+            value: "postgresql://{{ postgres_user }}:{{ postgres_password }}@chat-db:5432/{{ chat_db_name | default('chatdb') }}"
+          - name: JWT_SECRET
+            value: "{{ jwt_secret }}"
+          - name: AUTH_SERVICE_URL
+            value: "http://auth-service:8000"
+          ports:
+          - containerPort: 8001
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+          readinessProbe:
+            httpGet:
+              path: /docs
+              port: 8001
+            initialDelaySeconds: 5
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: chat-service
+spec:
+  selector:
+    app: chat-service
+  ports:
+    - protocol: TCP
+      port: 8001
+      targetPort: 8001
+---
+# ------------------------------------------------------------------------------
+# Frontend
+# ------------------------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-deployment
+  labels:
+    app: frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: docker.io/{{ docker_user }}/vibes-frontend:{{ image_tag | default('latest') }}
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+spec:
+  type: NodePort
+  selector:
+    app: frontend
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+      nodePort: 30080

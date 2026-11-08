@@ -1,0 +1,106 @@
+services:
+
+  mgmt:
+    build: .
+    container_name: mgmt
+    networks:
+      - chat_net
+    volumes:
+      - type: bind
+        source: ./gcpcloud
+        target: /home/gcpcloud
+
+      - type: bind
+        source: ./database
+        target: /home/database
+
+      - type: bind
+        source: ssh-keys
+        target: /root/.ssh
+
+
+  # One database instance per microservice (instance-level isolation).
+  auth-db:
+    image: postgres:15
+    container_name: auth-db
+    env_file: ./database/.env
+    environment:
+      POSTGRES_DB: authapp
+    networks:
+      - chat_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d authapp"]
+      interval: 5s
+      retries: 5
+    volumes:
+      - ./database/auth-init.sql:/docker-entrypoint-initdb.d/init.sql
+      - auth-db-data:/var/lib/postgresql/data
+
+  chat-db:
+    image: postgres:15
+    container_name: chat-db
+    env_file: ./database/.env
+    environment:
+      POSTGRES_DB: chatapp
+    networks:
+      - chat_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d chatapp"]
+      interval: 5s
+      retries: 5
+    volumes:
+      - ./database/chat-init.sql:/docker-entrypoint-initdb.d/init.sql
+      - chat-db-data:/var/lib/postgresql/data
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: services/auth-service/Dockerfile
+    container_name: auth-service
+    env_file: ./services/auth-service/.env
+    ports:
+      - "8000:8000"
+    depends_on:
+      auth-db:
+        condition: service_healthy
+    networks:
+      - chat_net
+
+  chat-service:
+    build:
+      context: .
+      dockerfile: services/chat-service/Dockerfile
+    container_name: chat-service
+    env_file: ./services/chat-service/.env
+    ports:
+      - "8001:8001"
+    depends_on:
+      chat-db:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+    networks:
+      - chat_net
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/vibes-frontend/Dockerfile
+    container_name: frontend
+    ports:
+      - "8080:80"            # Expose frontend on localhost:8080
+    depends_on:
+      - auth-service         # Wait for backend to be up first
+      - chat-service
+    networks:
+      - chat_net
+      
+
+networks:
+  chat_net:
+    name: chat_net
+    driver: bridge
+
+volumes:
+  auth-db-data:
+  chat-db-data:
